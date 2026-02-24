@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>red dead nonsense detector</title>
+  <style>
+    :root{
+      --bg0:#070403;
+      --bg1:#120806;
+      --card:#120b09cc;
+      --card2:#0f0907cc;
+      --text:#f2e8d9;
+      --muted:#cdbfae;
+      --gold:#d6b25e;
+      --gold2:#f0d48a;
+      --red:#7b1f1f;
+      --red2:#b12b2b;
+      --line:#2a1913;
+      --shadow: 0 22px 65px rgba(0,0,0,.58);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 800px at 30% 20%, #1a0f0c 0%, var(--bg0) 55%, #050303 100%);
+      overflow-x:hidden;
+    }
+
+    /* background */
+    .bg{
+      position:fixed; inset:0;
+      background:
+        radial-gradient(900px 600px at 70% 30%, rgba(177,43,43,.20), transparent 60%),
+        radial-gradient(900px 700px at 20% 80%, rgba(214,178,94,.10), transparent 62%),
+        linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.70));
+      filter:saturate(1.05) contrast(1.08);
+      z-index:-4;
+    }
+    #dust{
+      position:fixed; inset:0;
+      z-index:-3;
+      opacity:.55;
+    }
+    .vignette{
+      position:fixed; inset:0;
+      z-index:-2;
+      pointer-events:none;
+      background: radial-gradient(circle at 50% 35%, transparent 0%, rgba(0,0,0,.40) 55%, rgba(0,0,0,.82) 100%);
+    }
+
+    /* layout */
+    main.wrap{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 20px 16px 28px;
+      min-height:100dvh;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    header.topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding: 8px 6px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width: 0;
+    }
+    .badge{
+      width:46px;height:46px;
+      border-radius:14px;
+      display:grid;place-items:center;
+      background: linear-gradient(180deg, rgba(214,178,94,.18), rgba(123,31,31,.12));
+      border: 1px solid rgba(214,178,94,.35);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      flex:0 0 auto;
+      position:relative;
+      overflow:hidden;
+    }
+    .badge::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: conic-gradient(from 200deg, transparent 0 60%, rgba(240,212,138,.25) 70%, transparent 85%);
+      animation: spin 6.8s linear infinite;
+      filter: blur(2px);
+    }
+    .badge span{position:relative; z-index:1; font-size:20px}
+
+    .brandText{min-width:0}
+    .brandTitle{
+      font-weight:800;
+      letter-spacing:.2px;
+      font-size:18px;
+      text-transform:lowercase;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brandSub{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:12.5px;
+      line-height:1.25;
+      max-width: 560px;
+    }
+
+    .hud{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      padding-top:2px;
+    }
+    .pill{
+      font-size:12px;
+      color: var(--muted);
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(12,7,6,.55);
+      border: 1px solid rgba(214,178,94,.22);
+      box-shadow: 0 14px 42px rgba(0,0,0,.28);
+      backdrop-filter: blur(8px);
+      white-space:nowrap;
+    }
+
+    /* card */
+    .card{
+      position:relative;
+      border-radius: 22px;
+      padding: 18px;
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border: 1px solid rgba(214,178,94,.22);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-height: 420px;
+    }
+    .card::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(420px 160px at 20% 0%, rgba(214,178,94,.14), transparent 60%),
+        radial-gradient(420px 160px at 80% 100%, rgba(177,43,43,.14), transparent 62%);
+      pointer-events:none;
+    }
+    .card::after{
+      content:"";
+      position:absolute; inset:0;
+      background-image: radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size: 22px 22px;
+      opacity:.22;
+      pointer-events:none;
+      mask-image: radial-gradient(circle at 40% 30%, rgba(0,0,0,.8), transparent 70%);
+    }
+
+    .screen{
+      position:relative;
+      z-index:1;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      height:100%;
+      animation: popIn .35s ease both;
+    }
+    .screen.out{
+      animation: popOut .22s ease both;
+    }
+
+    .title{
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing:.1px;
+      text-transform:lowercase;
+      margin-top:4px;
+    }
+    .subtitle{
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      max-width: 720px;
+    }
+
+    .row{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:4px;
+    }
+
+    .btn{
+      cursor:pointer;
+      border: 1px solid rgba(214,178,94,.22);
+      background: linear-gradient(180deg, rgba(214,178,94,.10), rgba(123,31,31,.08));
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 750;
+      text-transform:lowercase;
+      letter-spacing:.1px;
+      transition: transform .15s ease, border-color .15s ease, filter .15s ease, box-shadow .15s ease;
+      box-shadow: 0 14px 40px rgba(0,0,0,.25);
+      user-select:none;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(240,212,138,.45);
+      filter: brightness(1.06);
+      box-shadow: 0 18px 50px rgba(0,0,0,.34);
+    }
+    .btn:active{ transform: translateY(0px) scale(.99); }
+    .btn.primary{
+      border-color: rgba(240,212,138,.55);
+      background: linear-gradient(180deg, rgba(240,212,138,.18), rgba(177,43,43,.10));
+    }
+
+    .qTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+    .qTitle{
+      font-weight: 950;
+      font-size: 22px;
+      text-transform: lowercase;
+      line-height:1.1;
+      margin-top:4px;
+    }
+    .qHint{
+      color: var(--muted);
+      font-size: 12.5px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px dashed rgba(214,178,94,.22);
+      background: rgba(9,5,4,.35);
+      backdrop-filter: blur(8px);
+      white-space:nowrap;
+    }
+
+    .answers{
+      display:grid;
+      gap:12px;
+      margin-top: 6px;
+    }
+    @media (min-width: 760px){
+      .answers{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .opt{
+      position:relative;
+      cursor:pointer;
+      padding: 14px 14px 14px 14px;
+      border-radius: 16px;
+      background: rgba(10,6,5,.50);
+      border: 1px solid rgba(214,178,94,.16);
+      transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow: 0 16px 44px rgba(0,0,0,.22);
+      overflow:hidden;
+      user-select:none;
+    }
+    .opt::before{
+      content:"";
+      position:absolute; inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(240,212,138,.14), transparent 45%),
+                  radial-gradient(circle at 70% 60%, rgba(177,43,43,.10), transparent 55%);
+      transform: rotate(12deg);
+      opacity:0;
+      transition: opacity .2s ease;
+    }
+    .opt:hover{
+      transform: translateY(-1px);
+      border-color: rgba(240,212,138,.34);
+      background: rgba(13,8,7,.62);
+      box-shadow: 0 20px 55px rgba(0,0,0,.32);
+    }
+    .opt:hover::before{ opacity:1; }
+    .opt:active{ transform: translateY(0px) scale(.995); }
+    .optText{
+      position:relative;
+      z-index:1;
+      font-weight: 800;
+      text-transform: lowercase;
+      letter-spacing:.1px;
+      line-height:1.2;
+    }
+    .optSub{
+      position:relative;
+      z-index:1;
+      margin-top:6px;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height:1.35;
+    }
+
+    .nextRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top: 8px;
+      flex-wrap:wrap;
+    }
+    .ghost{
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    /* footer progress */
+    footer.footer{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      padding: 6px 6px 0;
+    }
+    .progressWrap{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .progressBar{
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(12,7,6,.55);
+      border: 1px solid rgba(214,178,94,.20);
+      overflow:hidden;
+      flex: 1 1 320px;
+      min-width: 240px;
+      box-shadow: 0 14px 42px rgba(0,0,0,.26);
+    }
+    .progressFill{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(214,178,94,.85), rgba(177,43,43,.70));
+      border-radius: 999px;
+      transition: width .35s ease;
+      box-shadow: 0 10px 30px rgba(214,178,94,.25);
+    }
+    .progressText{
+      color: var(--muted);
+      font-size: 12.5px;
+      flex: 0 0 auto;
+    }
+    .tiny{
+      color: rgba(205,191,174,.78);
+      font-size: 12px;
+      line-height:1.25;
+    }
+
+    /* toast */
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(10,6,5,.85);
+      border: 1px solid rgba(240,212,138,.28);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+      opacity:0;
+      pointer-events:none;
+      z-index: 999;
+      min-width: min(520px, calc(100vw - 24px));
+      max-width: 520px;
+    }
+    .toast.show{
+      animation: toastIn .22s ease forwards;
+    }
+    .toast.hide{
+      animation: toastOut .28s ease forwards;
+    }
+    .toastIcon{
+      width:34px;height:34px;
+      border-radius: 12px;
+      display:grid;place-items:center;
+      background: linear-gradient(180deg, rgba(214,178,94,.18), rgba(177,43,43,.10));
+      border: 1px solid rgba(214,178,94,.28);
+      flex:0 0 auto;
+    }
+    .toastMsg{
+      font-weight: 800;
+      text-transform: lowercase;
+      letter-spacing:.1px;
+      line-height:1.25;
+    }
+
+    /* animations */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes popIn{
+      from{ opacity:0; transform: translateY(8px) scale(.985); }
+      to{ opacity:1; transform: translateY(0) scale(1); }
+    }
+    @keyframes popOut{
+      from{ opacity:1; transform: translateY(0) scale(1); }
+      to{ opacity:0; transform: translateY(-6px) scale(.985); }
+    }
+    @keyframes toastIn{
+      from{ opacity:0; transform: translateX(-50%) translateY(10px) scale(.98); }
+      to{ opacity:1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+    @keyframes toastOut{
+      from{ opacity:1; transform: translateX(-50%) translateY(0) scale(1); }
+      to{ opacity:0; transform: translateX(-50%) translateY(10px) scale(.98); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg"></div>
+  <canvas id="dust"></canvas>
+  <div class="vignette"></div>
+
+  <main class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="badge"><span>🤠</span></div>
+        <div class="brandText">
+          <div class="brandTitle">red dead nonsense detector</div>
+          <div class="brandSub">this is extremely scientific. don’t argue with it. (also it’s for nerds)</div>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="pill" id="qCounter">0 / 0</div>
+        <div class="pill" id="streak">energy: calm menace</div>
+      </div>
+    </header>
+
+    <section class="card" id="card"></section>
+
+    <footer class="footer">
+      <div class="progressWrap">
+        <div class="progressBar" aria-label="progress">
+          <div class="progressFill" id="progressFill"></div>
+        </div>
+        <div class="progressText" id="progressText">loading cowboy code…</div>
+      </div>
+      <div class="tiny">made by matthew (unserious edition) • github pages ready • no cringe allowed</div>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="toastIcon" id="toastIcon">⭐</div>
+    <div class="toastMsg" id="toastMsg">toast</div>
+  </div>
+
+  <script>
+    /***********************
+     * You-coded quiz data *
+     ***********************/
+    const QUIZ = [
+      {
+        q: "okay be real. what do you actually do in red dead",
+        hint: "no judgement (maybe a little)",
+        opts: [
+          { t: "sit at camp and vibe", s: "you love peace until chaos finds you", score: 2,
+            toast: { icon:"🏕️", msg:"camp vibes detected. you would’ve thrived at horseshoe overlook fr." } },
+          { t: "roam for 3 hours doing absolutely nothing", s: "main story? never heard of her", score: 3,
+            toast: { icon:"🌅", msg:"you definitely forget the story exists and honestly… valid." } },
+          { t: "start unnecessary chaos in valentine", s: "menace activities (respectfully)", score: 1,
+            toast: { icon:"💥", msg:"you are NOT allowed near valentine without supervision 😭" } },
+          { t: "get emotionally attached to fictional men", s: "we see you. we’re not judging (we’re judging)", score: 4,
+            toast: { icon:"😔", msg:"emotional damage enjoyer. elite but also pls heal." } },
+        ]
+      },
+      {
+        q: "how attached are you to your horse. be honest.",
+        hint: "choose wisely 🤨",
+        opts: [
+          { t: "that’s my child", s: "you’d name it something iconic", score: 4,
+            toast: { icon:"🐎", msg:"okay empathy unlocked. horse is family." } },
+          { t: "it’s replaceable", s: "cold. absolutely cold.", score: 1,
+            toast: { icon:"🧊", msg:"nahhh you’re ruthless 😭" } },
+          { t: "i reload the save if it dies", s: "you care fr", score: 3,
+            toast: { icon:"💾", msg:"reloading saves is the correct moral choice." } },
+          { t: "depends if it trips me", s: "fair but you’re dangerous", score: 2,
+            toast: { icon:"🪨", msg:"one rock and you’re ready to crash out 💀" } },
+        ]
+      },
+      {
+        q: "pick your red dead weakness",
+        hint: "this is where we learn who you really are",
+        opts: [
+          { t: "chapter 2 camp vibes", s: "taste. immediately valid.", score: 4,
+            toast: { icon:"⭐", msg:"chapter 2 enjoyer = elite taste. you actually know ball." } },
+          { t: "sunset horse rides", s: "aesthetic cowboy moment", score: 3,
+            toast: { icon:"🌇", msg:"okay cinematic main character cowboy energy." } },
+          { t: "sadie adler supremacy", s: "we respect it", score: 4,
+            toast: { icon:"🗡️", msg:"sadie pick??? taste. we love to see it." } },
+          { t: "gambling for no reason", s: "you’re here for vibes + chaos", score: 2,
+            toast: { icon:"🎲", msg:"bro you’d gamble rent money in the saloon 😭" } },
+        ]
+      },
+      {
+        q: "if we’re in red dead together what are you doing",
+        hint: "duo roles. don’t sell.",
+        opts: [
+          { t: "planning the mission properly", s: "actually competent (rare)", score: 4,
+            toast: { icon:"🧠", msg:"okay mr. strategist. calm menace but organized." } },
+          { t: "emotional support cowboy", s: "you keep the group alive fr", score: 3,
+            toast: { icon:"🫶", msg:"emotional support cowboy is crazy but needed." } },
+          { t: "silent sniper in the back", s: "lowkey terrifying", score: 3,
+            toast: { icon:"🎯", msg:"quiet aim… loud damage. we see you." } },
+          { t: "instigating for no reason", s: "you are the plot twist", score: 1,
+            toast: { icon:"😈", msg:"you’re the reason missions fail but it’s funny 😭" } },
+        ]
+      },
+      {
+        q: "if you could add one mod… what are we doing",
+        hint: "this decides your mental state",
+        opts: [
+          { t: "gojo cowboy", s: "unhinged. elite.", score: 4,
+            toast: { icon:"🌀", msg:"gojo in the wild west is insane… but i respect it." } },
+          { t: "infinite jump boost", s: "physics left the chat", score: 3,
+            toast: { icon:"🦘", msg:"you just want chaos with extra vertical." } },
+          { t: "among us outlaw", s: "you need supervision", score: 2,
+            toast: { icon:"🕵️", msg:"nahh among us in rdr is diabolical 💀" } },
+          { t: "ultra realism cowboy simulator", s: "you’re here for immersion", score: 3,
+            toast: { icon:"📽️", msg:"okay cinematic realism enjoyer. respectable." } },
+        ]
+      },
+    ];
+
+    /***********************
+     * UI + state handling *
+     ***********************/
+    const el = (id) => document.getElementById(id);
+    const card = el("card");
+    const qCounter = el("qCounter");
+    const streak = el("streak");
+    const progressFill = el("progressFill");
+    const progressText = el("progressText");
+
+    const toast = el("toast");
+    const toastIcon = el("toastIcon");
+    const toastMsg = el("toastMsg");
+
+    let idx = -1;
+    let total = QUIZ.length;
+    let score = 0;
+    let picks = [];
+
+    function setHud(){
+      qCounter.textContent = `${Math.max(0, idx+1)} / ${total}`;
+      const pct = Math.round(((Math.max(0, idx)) / total) * 100);
+      progressText.textContent = idx < 0 ? "loading cowboy code…" : `progress: ${pct}% (keep going)`;
+      progressFill.style.width = idx < 0 ? "0%" : `${Math.min(100, ((idx)/total)*100)}%`;
+      streak.textContent = vibeFromScore(score, idx);
+    }
+
+    function vibeFromScore(s, i){
+      if(i < 0) return "energy: calm menace";
+      const avg = s / Math.max(1, i+1);
+      if(avg >= 3.6) return "energy: goated + emotionally intelligent";
+      if(avg >= 3.0) return "energy: elite vibes + slight chaos";
+      if(avg >= 2.3) return "energy: chill but dangerous";
+      return "energy: menace to valentine society";
+    }
+
+    let toastTimer = null;
+    function showToast(icon, msg){
+      if(toastTimer) clearTimeout(toastTimer);
+      toastIcon.textContent = icon;
+      toastMsg.textContent = msg;
+
+      toast.classList.remove("hide");
+      toast.classList.add("show");
+
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+      }, 1550);
+    }
+
+    function screenStart(){
+      setHud();
+      card.innerHTML = `
+        <div class="screen">
+          <div class="title">red dead vibe check 🤠</div>
+          <div class="subtitle">
+            this is a completely serious scientific evaluation.
+            if you lie the horse will judge you.
+          </div>
+
+          <div class="row">
+            <button class="btn primary" id="startBtn">fine whatever start</button>
+            <button class="btn" id="previewBtn">what is this</button>
+          </div>
+
+          <div class="subtitle" style="margin-top:4px; opacity:.92">
+            <b>how it works:</b> you click answers, you get roasted (lovingly),
+            then you get a verdict. that’s literally it.
+          </div>
+        </div>
+      `;
+
+      el("startBtn").addEventListener("click", () => goNext());
+      el("previewBtn").addEventListener("click", () => showToast("🤠","it’s a red dead nonsense detector. you are either goated or a menace."));
+    }
+
+    function screenQuestion(qObj, qIndex){
+      setHud();
+      const answersHtml = qObj.opts.map((o, k) => `
+        <div class="opt" role="button" tabindex="0" data-k="${k}">
+          <div class="optText">${o.t}</div>
+          <div class="optSub">${o.s}</div>
+        </div>
+      `).join("");
+
+      card.innerHTML = `
+        <div class="screen" id="screen">
+          <div class="qTop">
+            <div>
+              <div class="qTitle">${qObj.q}</div>
+              <div class="subtitle" style="margin-top:6px">${qObj.hint}</div>
+            </div>
+            <div class="qHint">question ${qIndex+1} / ${total}</div>
+          </div>
+
+          <div class="answers" id="answers">${answersHtml}</div>
+
+          <div class="nextRow">
+            <div class="ghost" id="ghostText">pick an answer. no fear.</div>
+            <button class="btn primary" id="nextBtn" disabled style="opacity:.55; cursor:not-allowed;">
+              next
+            </button>
+          </div>
+        </div>
+      `;
+
+      const nextBtn = el("nextBtn");
+      const ghostText = el("ghostText");
+      let chosen = null;
+
+      const select = (k) => {
+        chosen = k;
+
+        // Visual highlight
+        [...document.querySelectorAll(".opt")].forEach((node, i) => {
+          node.style.borderColor = i === k ? "rgba(240,212,138,.55)" : "rgba(214,178,94,.16)";
+          node.style.background = i === k ? "rgba(17,10,9,.78)" : "rgba(10,6,5,.50)";
+          node.style.transform = i === k ? "translateY(-1px)" : "translateY(0px)";
+        });
+
+        // toast feedback
+        const opt = qObj.opts[k];
+        showToast(opt.toast.icon, opt.toast.msg);
+
+        // enable next
+        ghostText.textContent = "okay valid. proceed.";
+        nextBtn.disabled = false;
+        nextBtn.style.opacity = "1";
+        nextBtn.style.cursor = "pointer";
+      };
+
+      // click handlers
+      document.querySelectorAll(".opt").forEach(node => {
+        node.addEventListener("click", () => select(Number(node.dataset.k)));
+        node.addEventListener("keydown", (e) => {
+          if(e.key === "Enter" || e.key === " ") { e.preventDefault(); select(Number(node.dataset.k)); }
+        });
+      });
+
+      nextBtn.addEventListener("click", () => {
+        if(chosen === null) return;
+        const picked = qObj.opts[chosen];
+        picks.push({q: qObj.q, a: picked.t});
+        score += picked.score;
+        goNext();
+      });
+    }
+
+    function screenResult(){
+      setHud();
+      progressFill.style.width = "100%";
+      progressText.textContent = "progress: 100% (you survived)";
+
+      const avg = score / total;
+
+      let verdictTitle, verdictSub, extra;
+      if(avg >= 3.6){
+        verdictTitle = "verdict: actually goated.";
+        verdictSub = "like… elite taste + nerd energy + main character vibes.";
+        extra = "co-op privileges unlocked. (no pressure but also yes pressure)";
+      } else if(avg >= 3.0){
+        verdictTitle = "verdict: elite vibes (with a little chaos).";
+        verdictSub = "you’re chill but definitely dangerous in valentine.";
+        extra = "cowboy duo energy detected.";
+      } else if(avg >= 2.3){
+        verdictTitle = "verdict: chill… but suspicious.";
+        verdictSub = "you’re not the problem… but you definitely know the problem.";
+        extra = "still goated tho. we move.";
+      } else {
+        verdictTitle = "verdict: menace to society 😭";
+        verdictSub = "you might be the reason the saloon has rules.";
+        extra = "still funny tho so it’s fine.";
+      }
+
+      // fun little recap (optional)
+      const recap = picks.map(p => `• ${p.a}`).join("<br/>");
+
+      card.innerHTML = `
+        <div class="screen">
+          <div class="title">${verdictTitle}</div>
+          <div class="subtitle">${verdictSub}</div>
+
+          <div class="row">
+            <button class="btn primary" id="shareBtn">copy link</button>
+            <button class="btn" id="restartBtn">run it back</button>
+            <button class="btn" id="confettiBtn">extra dramatic</button>
+          </div>
+
+          <div class="subtitle" style="margin-top:2px"><b>${extra}</b></div>
+
+          <div class="subtitle" style="margin-top:10px; opacity:.95">
+            <b>your answers were:</b><br/>
+            <span style="color: rgba(240,212,138,.92)">${recap}</span>
+          </div>
+
+          <div class="subtitle" style="margin-top:10px">
+            if you’re reading this… you passed the vibe check. that’s literally it.
+          </div>
+        </div>
+      `;
+
+      el("restartBtn").addEventListener("click", () => restart());
+      el("shareBtn").addEventListener("click", async () => {
+        try{
+          await navigator.clipboard.writeText(location.href);
+          showToast("🔗","copied. now send it like ‘don’t judge me i made something dumb’ 😭");
+        }catch{
+          showToast("😔","couldn’t auto-copy but you can just copy the url normally");
+        }
+      });
+
+      el("confettiBtn").addEventListener("click", () => {
+        showToast("✨","extra dramatic mode activated (mentally)");
+      });
+    }
+
+    function goNext(){
+      const current = document.querySelector(".screen");
+      if(current){
+        current.classList.add("out");
+        setTimeout(() => step(), 180);
+      } else {
+        step();
+      }
+    }
+
+    function step(){
+      idx++;
+      if(idx === 0){
+        screenQuestion(QUIZ[0], 0);
+      } else if(idx > 0 && idx < total){
+        screenQuestion(QUIZ[idx], idx);
+      } else {
+        screenResult();
+      }
+      setHud();
+    }
+
+    function restart(){
+      idx = -1;
+      score = 0;
+      picks = [];
+      progressFill.style.width = "0%";
+      progressText.textContent = "loading cowboy code…";
+      screenStart();
+    }
+
+    /***********************
+     * Dust particles FX   *
+     ***********************/
+    const canvas = document.getElementById("dust");
+    const ctx = canvas.getContext("2d");
+    let W, H, particles;
+
+    function resize(){
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      particles = new Array(Math.floor(Math.min(160, (W*H)/22000))).fill(0).map(() => ({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        r: 0.7 + Math.random()*1.6,
+        a: 0.08 + Math.random()*0.18,
+        vx: -0.15 + Math.random()*0.35,
+        vy: -0.05 + Math.random()*0.25,
+      }));
+    }
+    window.addEventListener("resize", resize);
+
+    function tick(){
+      ctx.clearRect(0,0,W,H);
+      for(const p of particles){
+        p.x += p.vx;
+        p.y += p.vy;
+        if(p.x < -20) p.x = W+20;
+        if(p.x > W+20) p.x = -20;
+        if(p.y < -20) p.y = H+20;
+        if(p.y > H+20) p.y = -20;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(240,212,138,${p.a})`;
+        ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+
+    /***********************
+     * Init                *
+     ***********************/
+    total = QUIZ.length;
+    resize();
+    tick();
+    restart();
+  </script>
+</body>
+</html>
